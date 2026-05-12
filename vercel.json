@@ -2,6 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm install",
   "buildCommand": "echo 'Static HTML — no Vite'",
-  "outputDirectory": ".",
-  "rewrites": [{ "source": "/", "destination": "/blindbox-demo.html" }]
+  "outputDirectory": "."
 }
