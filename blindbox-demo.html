@@ -219,40 +219,6 @@
         z-index: 2;
       }
 
-      /* 匹配页覆盖完成后：双头像从两侧移向中间 */
-      @keyframes matched-av-from-left {
-        from {
-          transform: translateX(-168px);
-          opacity: 0.78;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-      @keyframes matched-av-from-right {
-        from {
-          transform: translateX(168px);
-          opacity: 0.78;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-      .matched-av-stack--intro .matched-av--me {
-        animation: matched-av-from-left 0.58s var(--ease-slide) forwards;
-      }
-      .matched-av-stack--intro .matched-av--peer {
-        animation: matched-av-from-right 0.58s var(--ease-slide) forwards;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .matched-av-stack--intro .matched-av--me,
-        .matched-av-stack--intro .matched-av--peer {
-          animation: none !important;
-        }
-      }
-
       .matched-dist-pill {
         display: inline-flex;
         align-items: center;
@@ -584,7 +550,7 @@
           >
             ‹
           </button>
-          <div id="matched-av-stack" class="matched-av-stack">
+          <div class="matched-av-stack">
             <img
               id="me-avatar"
               class="matched-av matched-av--me"
@@ -765,10 +731,6 @@
       ></div>
     </div>
 
-    <p class="text-center text-[13px] text-muted py-2">
-      <a href="blindbox-open-effect.html" class="font-medium text-primary underline underline-offset-2">纯 CSS 开启动效组件</a>
-    </p>
-
     <script>
       (function () {
         const STORAGE_KEY = "blindbox_demo_v1";
@@ -883,7 +845,6 @@
           matchScreen: document.getElementById("screen-matching"),
           matchedDock: document.getElementById("matched-bottom-dock"),
           chatInput: document.getElementById("chat-input"),
-          matchedAvStack: document.getElementById("matched-av-stack"),
         };
 
         function renderChips(container, options, key, current) {
@@ -997,8 +958,6 @@
         }
 
         function openMatchedPanel() {
-          if (el.matchedAvStack) el.matchedAvStack.classList.remove("matched-av-stack--intro");
-
           el.peerAvatar.src = MATCH.avatarPeer;
           document.getElementById("me-avatar").src = MATCH.avatarMe;
           el.peerHeadline.textContent = MATCH.nickname + " · " + MATCH.age;
@@ -1012,24 +971,9 @@
           el.panelMatched.classList.remove("is-hidden");
           el.panelMatched.classList.add("is-visible");
           el.panelMatched.setAttribute("aria-hidden", "false");
-
-          var introDone = false;
-          function runMatchedAvIntro() {
-            if (introDone) return;
-            introDone = true;
-            el.panelMatched.removeEventListener("transitionend", onMatchedPanelIn);
-            if (el.matchedAvStack) el.matchedAvStack.classList.add("matched-av-stack--intro");
-          }
-          function onMatchedPanelIn(e) {
-            if (e.target !== el.panelMatched || e.propertyName !== "transform") return;
-            runMatchedAvIntro();
-          }
-          el.panelMatched.addEventListener("transitionend", onMatchedPanelIn);
-          setTimeout(runMatchedAvIntro, 420);
         }
 
         function closeMatchedPanelSlide() {
-          if (el.matchedAvStack) el.matchedAvStack.classList.remove("matched-av-stack--intro");
           el.panelMatched.classList.add("is-hidden");
           el.panelMatched.classList.remove("is-visible");
           el.panelMatched.setAttribute("aria-hidden", "true");
