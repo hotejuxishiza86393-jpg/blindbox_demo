@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" aria-hidden="true">
+  <!-- ? Figma SoMeet ??? node 571:696 ??????????????????? PNG/WebP -->
+  <defs>
+    <clipPath id="exit-otter-shirt">
+      <rect x="72" y="108" width="56" height="28" rx="6"/>
+    </clipPath>
+  </defs>
+  <rect width="200" height="200" rx="22" fill="#B8E4F8"/>
+  <path d="M28 118 Q20 108 32 102 Q44 98 52 108" stroke="#7EC8EE" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M148 112 Q160 104 172 112 Q178 120 168 128" stroke="#7EC8EE" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M40 132 Q100 124 160 132" stroke="#7EC8EE" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.85"/>
+  <ellipse cx="100" cy="118" rx="62" ry="38" fill="#D4B896"/>
+  <ellipse cx="100" cy="108" rx="36" ry="30" fill="#F7EDE0"/>
+  <path d="M76 96 Q100 78 124 96 Q128 108 120 118 Q100 128 80 118 Q72 108 76 96" fill="#D4B896"/>
+  <circle cx="88" cy="96" r="3.2" fill="#2A2A2A"/>
+  <circle cx="112" cy="96" r="3.2" fill="#2A2A2A"/>
+  <ellipse cx="100" cy="104" rx="4" ry="3" fill="#2A2A2A" opacity="0.65"/>
+  <rect x="72" y="108" width="56" height="28" rx="6" fill="#E8F4FC"/>
+  <g clip-path="url(#exit-otter-shirt)">
+    <rect x="70" y="106" width="60" height="32" fill="#3A7BC8"/>
+    <rect x="70" y="110" width="60" height="4" fill="#E8F4FC"/>
+    <rect x="70" y="118" width="60" height="4" fill="#E8F4FC"/>
+    <rect x="70" y="126" width="60" height="4" fill="#E8F4FC"/>
+  </g>
+  <ellipse cx="100" cy="122" rx="18" ry="14" fill="#C9A882"/>
+  <ellipse cx="100" cy="120" rx="10" ry="8" fill="#E8D4BC" stroke="#B89A78" stroke-width="0.8"/>
+  <ellipse cx="58" cy="112" rx="10" ry="18" fill="#D4B896" transform="rotate(-25 58 112)"/>
+  <ellipse cx="142" cy="112" rx="10" ry="18" fill="#D4B896" transform="rotate(25 142 112)"/>
+</svg>

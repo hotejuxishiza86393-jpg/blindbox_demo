@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+    <title>搭子盲盒 · Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#FFD600",
+              page: "#FFFFFF",
+              card: "#FAFAFA",
+              ink: "#111111",
+              muted: "#666666",
+              faint: "#999999",
+            },
+            boxShadow: {
+              card: "0px 4px 16px rgba(0,0,0,0.06)",
+            },
+            borderRadius: {
+              card: "16px",
+              btn: "24px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      :root {
+        --primary: #ffd600;
+        --bg: #ffffff;
+        --card-bg: #fafafa;
+        --text-primary: #111111;
+        --text-secondary: #666666;
+        --text-tertiary: #999999;
+        --card-shadow: 0px 4px 16px rgba(0, 0, 0, 0.06);
+        --card-radius: 16px;
+        --button-radius: 24px;
+        --ease-slide: cubic-bezier(0.32, 0.72, 0, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+        background: #e8e8e8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      /* --- BlindBox: 底座固定，本体上下浮动 --- */
+      @keyframes blindbox-float {
+        0%,
+        100% {
+          transform: translateY(-6px);
+        }
+        50% {
+          transform: translateY(6px);
+        }
+      }
+
+      .blindbox-body {
+        animation: blindbox-float 2s ease-in-out infinite;
+        will-change: transform;
+      }
+
+      .screen-matching .blindbox-body {
+        animation: none;
+      }
+
+      /* --- 蓄力：scale 1 → 1.08 → 1，每周期 0.6s，共 2s --- */
+      @keyframes match-charge {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.08);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .match-charge .blindbox-body {
+        animation: match-charge 0.6s ease-in-out infinite;
+      }
+
+      /* --- 弹出：本体放大 + 变淡 --- */
+      @keyframes match-pop-box {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1.2);
+          opacity: 0.8;
+        }
+      }
+
+      .match-pop .blindbox-body {
+        animation: match-pop-box 0.5s ease-out forwards;
+      }
+
+      /* --- 亮光：白圆扩散 --- */
+      @keyframes match-flash {
+        0% {
+          transform: translate(-50%, -50%) scale(0);
+          opacity: 0.8;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(3);
+          opacity: 0;
+        }
+      }
+
+      .match-flash-ring {
+        pointer-events: none;
+        position: absolute;
+        left: 50%;
+        top: 44%;
+        width: 120px;
+        height: 120px;
+        margin-left: -60px;
+        margin-top: -60px;
+        border-radius: 50%;
+        background: #fff;
+        opacity: 0;
+      }
+
+      .match-pop .match-flash-ring {
+        animation: match-flash 0.5s ease-out forwards;
+      }
+
+      /* 简易 CSS 盲盒 */
+      .box-3d {
+        width: 140px;
+        height: 100px;
+        border-radius: 12px;
+        background: linear-gradient(145deg, #ffe566 0%, var(--primary) 45%, #e6bc00 100%);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+        position: relative;
+      }
+
+      .box-3d::after {
+        content: "?";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 42px;
+        font-weight: 800;
+        color: rgba(17, 17, 17, 0.35);
+      }
+
+      .pedestal {
+        width: 180px;
+        height: 16px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #f0f0f0, #dcdcdc);
+        box-shadow: var(--card-shadow);
+      }
+
+      /* --- 匹配后页：右侧滑入 / 滑出 --- */
+      .panel-matched {
+        transition: transform 0.35s var(--ease-slide);
+      }
+
+      .panel-matched.is-hidden {
+        transform: translateX(100%);
+        pointer-events: none;
+      }
+
+      .panel-matched.is-visible {
+        transform: translateX(0);
+      }
+
+      /* 匹配后页：双人头像区（主黄，与发送按钮同级） */
+      .matched-zone-gray {
+        background: linear-gradient(180deg, #fff4a8 0%, var(--primary) 42%, #f0cc00 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+
+      .matched-av-stack {
+        position: relative;
+        width: 220px;
+        height: 96px;
+        margin: 0 auto;
+      }
+
+      .matched-av {
+        position: absolute;
+        bottom: 0;
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        object-fit: cover;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+      }
+
+      .matched-av--me {
+        left: 18px;
+        z-index: 1;
+      }
+
+      .matched-av--peer {
+        right: 18px;
+        z-index: 2;
+      }
+
+      .matched-dist-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: rgba(255, 255, 255, 0.92);
+        background: rgba(0, 0, 0, 0.38);
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+      }
+
+      /* 「周末都喜欢…」整行高亮强调 */
+      .matched-weekend-line {
+        display: block;
+        width: fit-content;
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 10px 16px;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.5;
+        letter-spacing: 0.02em;
+        color: var(--text-primary);
+        text-align: center;
+        background: linear-gradient(180deg, #fffef2 0%, #fff4a0 35%, var(--primary) 72%, #f5d400 100%);
+        border: 1px solid rgba(255, 184, 0, 0.65);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.75),
+          0 4px 14px rgba(255, 214, 0, 0.35);
+      }
+
+      /* Tips + 消息区：淡色卡片，与头像黄区分开 */
+      .matched-soft-card {
+        background: linear-gradient(180deg, #fafafa 0%, #f3f3f4 55%, #ececee 100%);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: var(--card-radius);
+        box-shadow: var(--card-shadow);
+      }
+
+      /* --- 资料预览 --- */
+      .panel-profile {
+        transition: transform 0.35s var(--ease-slide);
+      }
+
+      .panel-profile.is-hidden {
+        transform: translateX(100%);
+      }
+
+      .panel-profile.is-visible {
+        transform: translateX(0);
+      }
+
+      /* --- 退出拦截：居中弹窗 --- */
+      @keyframes exit-modal-in {
+        from {
+          opacity: 0;
+          transform: scale(0.94);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .exit-modal {
+        animation: exit-modal-in 0.28s var(--ease-slide) forwards;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .exit-modal {
+          animation: none;
+        }
+      }
+
+      .toast-enter {
+        animation: toast-in 0.22s ease-out forwards;
+      }
+
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translate(-50%, 8px);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+      }
+
+      .shell-tab-inactive {
+        color: var(--text-tertiary);
+        font-size: 15px;
+        font-weight: 500;
+        padding: 8px 4px 10px;
+      }
+
+      .shell-tab-active {
+        color: var(--text-primary);
+        font-size: 17px;
+        font-weight: 700;
+        padding: 6px 4px 8px;
+        border-bottom: 3px solid var(--primary);
+        margin-bottom: -1px;
+      }
+
+      .shell-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 0 8px;
+        font-size: 11px;
+        color: var(--text-tertiary);
+      }
+
+      .shell-nav-item.is-on {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+
+      /* 副标题「过周末」底部笔刷强调 */
+      .entry-subtitle-brush {
+        position: relative;
+        z-index: 0;
+        isolation: isolate;
+        display: inline;
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+
+      .entry-subtitle-brush::after {
+        content: "";
+        position: absolute;
+        left: -4px;
+        right: -5px;
+        bottom: 0;
+        height: 0.55em;
+        background: linear-gradient(
+          98deg,
+          rgba(255, 214, 0, 0.35) 0%,
+          rgba(255, 214, 0, 0.82) 38%,
+          rgba(255, 230, 120, 0.55) 72%,
+          rgba(255, 214, 0, 0.4) 100%
+        );
+        border-radius: 42% 58% 48% 52% / 55% 48% 52% 45%;
+        z-index: -1;
+        transform: rotate(-1.2deg) skewX(-3deg);
+        pointer-events: none;
+      }
+
+      /* 盲盒记录：小标签卡片，色阶与副标题笔刷一致 */
+      .history-tag-card {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--text-primary);
+        letter-spacing: 0.02em;
+        background: linear-gradient(
+          118deg,
+          rgba(255, 214, 0, 0.38) 0%,
+          rgba(255, 214, 0, 0.72) 42%,
+          rgba(255, 230, 120, 0.48) 78%,
+          rgba(255, 214, 0, 0.36) 100%
+        );
+        border: 1px solid rgba(255, 184, 0, 0.5);
+        border-radius: 999px;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.65),
+          var(--card-shadow);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- iPhone 14 Pro 画布 390×844 -->
+    <div
+      id="phone"
+      class="relative overflow-hidden bg-page text-ink shadow-2xl"
+      style="width: 390px; height: 844px; border-radius: 40px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18)"
+    >
+      <!-- ===== 入口 entry（含原型壳子：状态栏 + 子 Tab + 底栏） ===== -->
+      <section id="screen-entry" class="absolute inset-0 z-[1] flex flex-col bg-page">
+        <!-- 状态栏（示意） -->
+        <div class="shrink-0 flex items-center justify-between px-6 pt-[14px] pb-1 text-[15px] font-semibold text-ink">
+          <span>14:09</span>
+          <span class="h-[28px] w-[120px] rounded-full bg-black"></span>
+          <span class="flex items-center gap-1 text-[13px] text-ink">
+            <span class="opacity-60">●●●</span>
+            <span class="font-semibold">100</span>
+          </span>
+        </div>
+
+        <!-- 二级子 Tab：推荐 | 找搭子 -->
+        <div class="shrink-0 flex items-end gap-8 px-6 border-b border-black/[0.06]">
+          <button type="button" id="tab-shell-rec" class="shell-tab-inactive">推荐</button>
+          <button type="button" id="tab-shell-partner" class="shell-tab-active">找搭子</button>
+        </div>
+
+        <!-- 主内容区（可滚动，底栏外置 fixed 在 entry 底部） -->
+        <div class="flex-1 flex flex-col min-h-0 overflow-y-auto pb-[68px]">
+          <!-- 标题行：左标题 + 右盲盒记录 -->
+          <header class="flex items-center justify-between px-6 pt-4 pb-0">
+            <h1 class="text-[18px] font-bold leading-tight text-ink">搭子盲盒</h1>
+            <button type="button" id="btn-history" class="history-tag-card shrink-0 active:opacity-80 active:scale-[0.98] transition">
+              盲盒记录
+            </button>
+          </header>
+
+          <!-- 副标题：与标题行间距 ≤8px；第一行问句、第二行行动句 -->
+          <p class="px-6 mt-2 text-[15px] leading-[1.55] text-muted text-left">
+            一个人在大城市孤独？<br />
+            找个合拍搭子一起<span class="entry-subtitle-brush">过周末</span>！
+          </p>
+
+          <!-- 主视觉：盲盒占满中间剩余高度并垂直居中（与副标题间距 24px） -->
+          <div class="mt-6 flex flex-1 flex-col items-center justify-center px-6 py-4 min-h-[140px]">
+            <div class="relative flex flex-col items-center gap-3">
+              <div class="relative h-[120px] flex items-end justify-center">
+                <div class="match-flash-ring" id="entry-flash" aria-hidden="true"></div>
+                <div id="entry-blindbox-wrap" class="blindbox-body">
+                  <div class="box-3d"></div>
+                </div>
+              </div>
+              <div class="pedestal"></div>
+            </div>
+          </div>
+
+          <!-- 底部组：筛选整体下移，贴近次数与主按钮 -->
+          <div class="shrink-0 px-6 pb-4 pt-2 space-y-5">
+            <div class="space-y-5">
+              <div>
+                <p class="text-[12px] text-faint mb-2">活动氛围</p>
+                <div class="flex gap-2 flex-wrap" id="chips-vibe" data-filter="vibe"></div>
+              </div>
+              <div>
+                <p class="text-[12px] text-faint mb-2">性别偏好</p>
+                <div class="flex gap-2 flex-wrap" id="chips-gender" data-filter="gender"></div>
+              </div>
+            </div>
+
+            <div class="space-y-3 pt-1">
+              <div
+                id="count-badge"
+                class="flex items-center justify-center gap-2 text-[12px] text-muted bg-card rounded-card px-4 py-2 shadow-card"
+              >
+                <span>今日剩余</span>
+                <span id="count-num" class="font-bold text-ink text-[15px]">3</span>
+                <span>次</span>
+                <span class="text-faint">· 刷新重置</span>
+              </div>
+              <button
+                type="button"
+                id="btn-start"
+                class="w-full h-[52px] rounded-[var(--button-radius)] bg-primary text-ink text-[16px] font-bold shadow-card active:scale-[0.98] transition opacity-100"
+              >
+                立即开启
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部主导航（原型示意） -->
+        <nav
+          class="absolute bottom-0 left-0 right-0 z-[2] flex border-t border-black/[0.06] bg-page pb-[max(10px,env(safe-area-inset-bottom))] pt-1"
+          aria-label="主导航"
+        >
+          <div class="shell-nav-item is-on relative flex flex-col items-center" id="nav-shell-rec">
+            <div class="relative inline-flex">
+              <span class="text-[22px] leading-none" aria-hidden="true">◎</span>
+              <span
+                class="absolute -top-1 -right-3 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[11px] font-bold leading-none"
+                >8</span
+              >
+            </div>
+            <span>推荐</span>
+          </div>
+          <div class="shell-nav-item" id="nav-shell-heart">
+            <span class="text-[22px] leading-none opacity-50" aria-hidden="true">♡</span>
+            <span>心动</span>
+          </div>
+          <div class="shell-nav-item" id="nav-shell-msg">
+            <span class="text-[22px] leading-none opacity-50" aria-hidden="true">☺</span>
+            <span>消息</span>
+          </div>
+          <div class="shell-nav-item" id="nav-shell-me">
+            <span class="text-[22px] leading-none opacity-50" aria-hidden="true">○</span>
+            <span>我的</span>
+          </div>
+        </nav>
+      </section>
+
+      <!-- ===== 匹配中 matching ===== -->
+      <section id="screen-matching" class="absolute inset-0 z-[15] bg-page hidden flex-col items-center justify-center">
+        <p class="text-[15px] text-muted mb-8">匹配中…</p>
+        <div class="relative flex flex-col items-center gap-3">
+          <div class="relative h-[120px] flex items-end justify-center">
+            <div class="match-flash-ring" id="match-flash" aria-hidden="true"></div>
+            <div id="match-blindbox-wrap" class="blindbox-body">
+              <div class="box-3d"></div>
+            </div>
+          </div>
+          <div class="pedestal"></div>
+        </div>
+      </section>
+
+      <!-- ===== 匹配后 matched（双人头像主黄区 + 淡色 Tips 卡 + 底栏输入） ===== -->
+      <div
+        id="panel-matched"
+        class="panel-matched absolute inset-0 z-20 flex flex-col is-hidden bg-page"
+        aria-hidden="true"
+      >
+        <div class="matched-zone-gray shrink-0 px-5 pb-5 pt-[max(12px,env(safe-area-inset-top))]">
+          <button
+            type="button"
+            id="btn-matched-back"
+            class="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-xl font-bold text-ink shadow-sm active:opacity-70"
+            aria-label="返回"
+          >
+            ‹
+          </button>
+          <div class="matched-av-stack">
+            <img
+              id="me-avatar"
+              class="matched-av matched-av--me"
+              src="https://randomuser.me/api/portraits/men/32.jpg"
+              alt=""
+              width="88"
+              height="88"
+            />
+            <button
+              type="button"
+              id="btn-peer-avatar"
+              class="matched-av matched-av--peer cursor-pointer overflow-hidden border-0 bg-transparent p-0 active:scale-95"
+              aria-label="预览对方主页"
+            >
+              <img id="peer-avatar" class="h-full w-full object-cover" src="" alt="" width="88" height="88" />
+            </button>
+          </div>
+          <p id="peer-headline" class="mt-4 text-center text-[17px] font-bold leading-tight text-ink"></p>
+          <div class="mt-2 flex justify-center">
+            <span id="peer-distance" class="matched-dist-pill"></span>
+          </div>
+          <p id="peer-weekend-line" class="matched-weekend-line mt-3 text-center"></p>
+        </div>
+
+        <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-page">
+          <div class="flex-1 overflow-y-auto px-5 py-5 pb-2">
+            <div class="matched-soft-card px-4 py-4">
+              <p id="peer-tip" class="text-center text-[14px] leading-relaxed text-muted"></p>
+              <div id="msg-list" class="mt-4 max-h-[180px] space-y-2 overflow-y-auto"></div>
+              <p id="msg-limit-hint" class="mt-2 hidden text-center text-[12px] text-orange-600"></p>
+              <button
+                type="button"
+                id="btn-sim-peer"
+                class="mt-3 hidden w-full rounded-xl border border-black/10 py-2 text-[13px] text-muted active:bg-white/60"
+              >
+                模拟对方回复
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="matched-bottom-dock"
+          class="flex shrink-0 items-center gap-2 border-t border-black/[0.08] bg-page px-3 py-2"
+          style="padding-bottom: max(10px, env(safe-area-inset-bottom))"
+        >
+          <button
+            type="button"
+            id="btn-matched-mic"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[18px] text-muted active:bg-card"
+            aria-label="语音"
+          >
+            ∿
+          </button>
+          <textarea
+            id="chat-input"
+            rows="1"
+            class="max-h-20 min-h-[40px] flex-1 resize-none rounded-2xl border border-black/[0.08] bg-card px-3 py-2.5 text-[15px] text-ink outline-none focus:ring-2 focus:ring-primary/35"
+            placeholder="说点什么…"
+          ></textarea>
+          <button
+            type="button"
+            id="btn-matched-emoji"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[18px] text-muted active:bg-card"
+            aria-label="表情"
+          >
+            ☺
+          </button>
+          <button
+            type="button"
+            id="btn-matched-plus"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl font-light text-muted active:bg-card"
+            aria-label="更多"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            id="chat-send"
+            class="shrink-0 rounded-xl bg-primary px-3 py-2 text-[13px] font-bold text-ink active:opacity-90"
+          >
+            发送
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== 资料卡（对方）滑入，隐藏悬浮按钮 ===== -->
+      <div
+        id="panel-profile"
+        class="panel-profile absolute inset-0 z-30 bg-page flex flex-col is-hidden"
+        aria-hidden="true"
+      >
+        <header class="flex items-center gap-3 px-4 pt-[48px] pb-3 border-b border-black/5">
+          <button
+            type="button"
+            id="btn-profile-close"
+            class="w-10 h-10 flex items-center justify-center rounded-full bg-card text-ink text-lg font-bold"
+          >
+            ‹
+          </button>
+          <span class="text-[18px] font-bold">资料预览</span>
+        </header>
+        <div class="flex-1 px-6 py-8 flex flex-col items-center">
+          <img
+            id="profile-avatar"
+            src="https://placehold.co/96x96/FFD600/111111?text=鱼"
+            alt=""
+            class="rounded-3xl shadow-card mb-4"
+            width="96"
+            height="96"
+          />
+          <p id="profile-name" class="text-[18px] font-bold">小鱼</p>
+          <p class="text-[15px] text-muted mt-1">24 · 设计师 · 上海</p>
+          <p class="text-[12px] text-faint mt-6 text-center leading-relaxed">
+            （演示）资料卡引用区域：兴趣、动态、认证等由正式版接口下发。
+          </p>
+        </div>
+      </div>
+
+      <!-- ===== 盲盒记录 history ===== -->
+      <section id="screen-history" class="absolute inset-0 z-40 bg-page hidden flex-col">
+        <header class="flex items-center gap-3 px-4 pt-[48px] pb-3 border-b border-black/5">
+          <button type="button" id="btn-history-back" class="w-10 h-10 flex items-center justify-center rounded-full bg-card text-ink text-lg font-bold">
+            ‹
+          </button>
+          <span class="text-[18px] font-bold">盲盒记录</span>
+        </header>
+        <div id="history-list" class="flex-1 overflow-y-auto px-4 py-4 space-y-3"></div>
+      </section>
+
+      <!-- ===== 退出拦截 ExitModal（居中） ===== -->
+      <div id="exit-overlay" class="absolute inset-0 z-50 hidden">
+        <div id="exit-scrim" class="absolute inset-0 z-0 bg-black/45"></div>
+        <div class="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center p-5">
+          <div
+            class="exit-modal pointer-events-auto relative w-full max-w-[308px] rounded-2xl bg-page px-5 pb-6 pt-3 shadow-[0_16px_48px_rgba(0,0,0,0.18)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exit-modal-title"
+          >
+            <div class="mb-1 flex justify-end">
+              <button type="button" id="exit-close-x" class="flex h-9 w-9 items-center justify-center rounded-full text-faint text-xl leading-none active:bg-card" aria-label="关闭">
+                ×
+              </button>
+            </div>
+            <div class="flex flex-col items-center text-center">
+              <!-- 小海獭插画（内联 SVG） -->
+              <svg width="120" height="100" viewBox="0 0 120 100" class="mb-2" aria-hidden="true">
+                <ellipse cx="60" cy="58" rx="38" ry="28" fill="#C9E8F5" />
+                <ellipse cx="60" cy="52" rx="32" ry="26" fill="#A8D8EA" />
+                <circle cx="44" cy="48" r="5" fill="#111" />
+                <circle cx="76" cy="48" r="5" fill="#111" />
+                <ellipse cx="60" cy="58" rx="8" ry="5" fill="#111" opacity="0.25" />
+                <ellipse cx="52" cy="62" rx="4" ry="2" fill="#FF9EC6" opacity="0.6" />
+                <path d="M22 50 Q10 45 8 58 Q12 62 24 58" fill="#A8D8EA" />
+                <path d="M98 50 Q110 45 112 58 Q108 62 96 58" fill="#A8D8EA" />
+                <circle cx="60" cy="28" r="6" fill="#8BC34A" opacity="0.35" />
+              </svg>
+              <h2 id="exit-modal-title" class="mb-2 text-[18px] font-bold text-ink">Ta正等你打招呼！</h2>
+              <p class="mb-6 text-[15px] leading-relaxed text-muted">未打招呼退出，系统不会保留该匹配记录</p>
+              <button
+                type="button"
+                id="exit-primary"
+                class="mb-3 h-[48px] w-full rounded-[var(--button-radius)] bg-primary text-[15px] font-bold text-ink active:scale-[0.99] transition"
+              >
+                打招呼
+              </button>
+              <button type="button" id="exit-secondary" class="py-2 text-[15px] font-medium text-muted active:opacity-70">仍要退出</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div
+        id="toast"
+        class="fixed left-1/2 bottom-[120px] z-[100] hidden -translate-x-1/2 max-w-[320px] px-4 py-2 rounded-xl bg-ink/90 text-white text-[13px] text-center shadow-lg pointer-events-none"
+      ></div>
+    </div>
+
+    <script>
+      (function () {
+        const STORAGE_KEY = "blindbox_demo_v1";
+
+        const MATCH = {
+          avatarPeer: "https://randomuser.me/api/portraits/women/44.jpg",
+          avatarMe: "https://randomuser.me/api/portraits/men/32.jpg",
+          nickname: "小鱼",
+          age: 24,
+          distance: "2.5km",
+          commonTags: ["看电影", "漫展", "户外"],
+          tip: "先试着聊聊，合适的话可以周末一起出去玩哦",
+        };
+
+        const VIBE_OPTS = [
+          { id: "high", label: "high" },
+          { id: "quiet", label: "安静" },
+          { id: "any", label: "均可" },
+        ];
+        const GENDER_OPTS = [
+          { id: "m", label: "男" },
+          { id: "f", label: "女" },
+          { id: "any", label: "均可" },
+        ];
+
+        function todayStr() {
+          const d = new Date();
+          return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+        }
+
+        function loadStore() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            return JSON.parse(raw);
+          } catch {
+            return null;
+          }
+        }
+
+        function saveStore(data) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function initStore() {
+          const t = todayStr();
+          const prev = loadStore();
+          const defaultHistory = [
+            {
+              id: "h1",
+              time: "昨天 21:06",
+              avatar: "https://placehold.co/40x40/EEEEEE/666?text=A",
+              nickname: "阿树",
+              greeted: true,
+            },
+            {
+              id: "h2",
+              time: "前天 19:40",
+              avatar: "https://placehold.co/40x40/DDDDDD/666?text=B",
+              nickname: "鹿鹿",
+              greeted: false,
+            },
+          ];
+          var history =
+            prev && Array.isArray(prev.history) && prev.history.length > 0 ? prev.history.slice() : defaultHistory;
+          var store = {
+            day: t,
+            remaining: 3,
+            history: history,
+          };
+          saveStore(store);
+          return store;
+        }
+
+        let store = initStore();
+
+        const state = {
+          screen: "entry",
+          prefs: { vibe: "any", gender: "any" },
+          showExitModal: false,
+          exitModalDismissed: false,
+          hasSentGreeting: false,
+          messages: [],
+          peerReplied: false,
+          showProfile: false,
+          showChatBar: false,
+          matchingTimer: null,
+        };
+
+        const el = {
+          entry: document.getElementById("screen-entry"),
+          matching: document.getElementById("screen-matching"),
+          history: document.getElementById("screen-history"),
+          panelMatched: document.getElementById("panel-matched"),
+          panelProfile: document.getElementById("panel-profile"),
+          exitOverlay: document.getElementById("exit-overlay"),
+          countNum: document.getElementById("count-num"),
+          btnStart: document.getElementById("btn-start"),
+          chipsVibe: document.getElementById("chips-vibe"),
+          chipsGender: document.getElementById("chips-gender"),
+          peerAvatar: document.getElementById("peer-avatar"),
+          peerHeadline: document.getElementById("peer-headline"),
+          peerDistance: document.getElementById("peer-distance"),
+          peerWeekendLine: document.getElementById("peer-weekend-line"),
+          peerTip: document.getElementById("peer-tip"),
+          msgList: document.getElementById("msg-list"),
+          msgHint: document.getElementById("msg-limit-hint"),
+          historyList: document.getElementById("history-list"),
+          toast: document.getElementById("toast"),
+          matchWrap: document.getElementById("match-blindbox-wrap"),
+          entryWrap: document.getElementById("entry-blindbox-wrap"),
+          matchScreen: document.getElementById("screen-matching"),
+          matchedDock: document.getElementById("matched-bottom-dock"),
+          chatInput: document.getElementById("chat-input"),
+        };
+
+        function renderChips(container, options, key, current) {
+          container.innerHTML = "";
+          options.forEach(function (opt) {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.textContent = opt.label;
+            b.dataset.id = opt.id;
+            const on = opt.id === current;
+            b.className =
+              "min-h-[36px] px-4 rounded-full text-[15px] font-medium transition " +
+              (on ? "bg-primary text-ink shadow-sm" : "bg-card text-muted border border-transparent");
+            b.addEventListener("click", function () {
+              state.prefs[key] = opt.id;
+              renderChips(container, options, key, state.prefs[key]);
+            });
+            container.appendChild(b);
+          });
+        }
+
+        function syncCountUI() {
+          el.countNum.textContent = String(store.remaining);
+          var exhausted = store.remaining <= 0;
+          el.btnStart.classList.toggle("opacity-40", exhausted);
+          el.btnStart.setAttribute("aria-disabled", exhausted ? "true" : "false");
+        }
+
+        function showToast(text) {
+          el.toast.textContent = text;
+          el.toast.classList.remove("hidden");
+          el.toast.classList.add("toast-enter");
+          clearTimeout(showToast._t);
+          showToast._t = setTimeout(function () {
+            el.toast.classList.add("hidden");
+            el.toast.classList.remove("toast-enter");
+          }, 2200);
+        }
+
+        function renderMessages() {
+          el.msgList.innerHTML = "";
+          state.messages.forEach(function (m) {
+            const row = document.createElement("div");
+            row.className = "flex " + (m.from === "me" ? "justify-end" : "justify-start");
+            const bubble = document.createElement("div");
+            bubble.className =
+              "max-w-[78%] px-3 py-2 rounded-2xl text-[15px] " +
+              (m.from === "me" ? "bg-primary text-ink rounded-br-md" : "bg-card text-ink border border-black/5 rounded-bl-md");
+            bubble.textContent = m.text;
+            row.appendChild(bubble);
+            el.msgList.appendChild(row);
+          });
+          el.msgList.scrollTop = el.msgList.scrollHeight;
+
+          var myOut = state.messages.filter(function (m) {
+            return m.from === "me";
+          }).length;
+          var sim = document.getElementById("btn-sim-peer");
+          if (sim) {
+            sim.classList.toggle("hidden", myOut < 1 || state.peerReplied);
+          }
+          if (!state.peerReplied && myOut >= 2) {
+            el.msgHint.textContent = "对方回复前最多发送 2 条；可点下方「模拟对方回复」继续演示";
+            el.msgHint.classList.remove("hidden");
+          } else {
+            el.msgHint.classList.add("hidden");
+          }
+        }
+
+        function renderHistory() {
+          el.historyList.innerHTML = "";
+          store.history.forEach(function (h) {
+            const row = document.createElement("div");
+            row.className = "flex items-center gap-3 p-3 rounded-card bg-card shadow-card";
+            row.innerHTML =
+              '<img src="' +
+              h.avatar +
+              '" class="w-11 h-11 rounded-xl object-cover shrink-0" alt=""/>' +
+              '<div class="flex-1 min-w-0">' +
+              '<p class="text-[15px] font-semibold truncate">' +
+              escapeHtml(h.nickname) +
+              "</p>" +
+              '<p class="text-[12px] text-faint">' +
+              escapeHtml(h.time) +
+              "</p>" +
+              "</div>" +
+              '<span class="text-[12px] shrink-0 ' +
+              (h.greeted ? "text-primary font-bold" : "text-faint") +
+              '">' +
+              (h.greeted ? "已打招呼" : "未打招呼") +
+              "</span>";
+            el.historyList.appendChild(row);
+          });
+        }
+
+        function escapeHtml(s) {
+          return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        function setScreen(name) {
+          state.screen = name;
+          el.entry.classList.toggle("hidden", name !== "entry");
+          el.matching.classList.toggle("hidden", name !== "matching");
+          el.matching.classList.toggle("flex", name === "matching");
+          el.history.classList.toggle("hidden", name !== "history");
+          el.history.classList.toggle("flex", name === "history");
+        }
+
+        function openMatchedPanel() {
+          el.peerAvatar.src = MATCH.avatarPeer;
+          document.getElementById("me-avatar").src = MATCH.avatarMe;
+          el.peerHeadline.textContent = MATCH.nickname + " · " + MATCH.age;
+          el.peerDistance.textContent = "距离你 " + MATCH.distance;
+          el.peerWeekendLine.textContent = "周末都喜欢：" + MATCH.commonTags.join(" ");
+          el.peerTip.textContent = "Tips: " + MATCH.tip;
+          document.getElementById("profile-avatar").src = MATCH.avatarPeer;
+          document.getElementById("profile-name").textContent = MATCH.nickname;
+          renderMessages();
+
+          el.panelMatched.classList.remove("is-hidden");
+          el.panelMatched.classList.add("is-visible");
+          el.panelMatched.setAttribute("aria-hidden", "false");
+        }
+
+        function closeMatchedPanelSlide() {
+          el.panelMatched.classList.add("is-hidden");
+          el.panelMatched.classList.remove("is-visible");
+          el.panelMatched.setAttribute("aria-hidden", "true");
+        }
+
+        function resetMatchSession() {
+          state.hasSentGreeting = false;
+          state.messages = [];
+          state.peerReplied = false;
+          state.exitModalDismissed = false;
+          if (el.chatInput) el.chatInput.value = "";
+          state.showChatBar = false;
+        }
+
+        function startMatchingFlow() {
+          if (store.remaining <= 0) {
+            showToast("今日次数已耗尽，刷新页面后重置");
+            return;
+          }
+          setScreen("matching");
+          el.matchScreen.classList.remove("match-charge", "match-pop");
+          void el.matchScreen.offsetWidth;
+          el.matchScreen.classList.add("match-charge");
+
+          clearTimeout(state.matchingTimer);
+          state.matchingTimer = setTimeout(function () {
+            el.matchScreen.classList.remove("match-charge");
+            el.matchScreen.classList.add("match-pop");
+          }, 2000);
+
+          setTimeout(function () {
+            store.remaining -= 1;
+            saveStore(store);
+            syncCountUI();
+
+            var rec = {
+              id: "h" + Date.now(),
+              time: formatNow(),
+              avatar: MATCH.avatarPeer,
+              nickname: MATCH.nickname,
+              greeted: false,
+            };
+            store.history.unshift(rec);
+            saveStore(store);
+
+            resetMatchSession();
+            setScreen("entry");
+            openMatchedPanel();
+            el.matchScreen.classList.remove("match-pop");
+          }, 2800);
+        }
+
+        function formatNow() {
+          var d = new Date();
+          return d.getMonth() + 1 + "月" + d.getDate() + "日 " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+        }
+
+        function openExitModal() {
+          state.showExitModal = true;
+          el.exitOverlay.classList.remove("hidden");
+        }
+
+        function closeExitModal() {
+          state.showExitModal = false;
+          el.exitOverlay.classList.add("hidden");
+        }
+
+        function hideChatUi() {
+          state.showChatBar = false;
+          if (el.chatInput) el.chatInput.value = "";
+          if (el.matchedDock) el.matchedDock.classList.remove("hidden");
+        }
+
+        function tryBackFromMatched() {
+          hideChatUi();
+          el.panelProfile.classList.add("is-hidden");
+          el.panelProfile.classList.remove("is-visible");
+          if (state.hasSentGreeting) {
+            closeMatchedPanelSlide();
+            setTimeout(function () {
+              setScreen("entry");
+            }, 360);
+            return;
+          }
+          if (state.exitModalDismissed) {
+            closeMatchedPanelSlide();
+            setTimeout(function () {
+              setScreen("entry");
+            }, 360);
+            return;
+          }
+          openExitModal();
+        }
+
+        function markCurrentHistoryGreeted() {
+          var nick = MATCH.nickname;
+          var hit = store.history.find(function (h) {
+            return h.nickname === nick;
+          });
+          if (hit) hit.greeted = true;
+          saveStore(store);
+        }
+
+        function removeLatestMatchIfNoGreet() {
+          if (state.hasSentGreeting) return;
+          if (store.history.length && store.history[0].nickname === MATCH.nickname) {
+            store.history.shift();
+            saveStore(store);
+          }
+        }
+
+        // --- 绑定 ---
+        document.getElementById("btn-start").addEventListener("click", function () {
+          if (store.remaining <= 0) {
+            showToast("今日次数已耗尽，刷新页面后重置");
+            return;
+          }
+          startMatchingFlow();
+        });
+
+        document.getElementById("btn-history").addEventListener("click", function () {
+          renderHistory();
+          setScreen("history");
+        });
+
+        document.getElementById("btn-history-back").addEventListener("click", function () {
+          setScreen("entry");
+        });
+
+        document.getElementById("btn-matched-back").addEventListener("click", tryBackFromMatched);
+
+        document.getElementById("btn-peer-avatar").addEventListener("click", function () {
+          state.showProfile = true;
+          el.panelProfile.classList.remove("is-hidden");
+          el.panelProfile.classList.add("is-visible");
+          if (el.matchedDock) el.matchedDock.classList.add("hidden");
+        });
+
+        document.getElementById("btn-profile-close").addEventListener("click", function () {
+          state.showProfile = false;
+          el.panelProfile.classList.add("is-hidden");
+          el.panelProfile.classList.remove("is-visible");
+          if (el.matchedDock) el.matchedDock.classList.remove("hidden");
+        });
+
+        document.getElementById("chat-send").addEventListener("click", function () {
+          var text = el.chatInput.value.trim();
+          if (!text) return;
+          var myOut = state.messages.filter(function (m) {
+            return m.from === "me";
+          }).length;
+          if (!state.peerReplied && myOut >= 2) {
+            showToast("对方回复前最多发送 2 条");
+            return;
+          }
+          state.messages.push({ from: "me", text: text });
+          el.chatInput.value = "";
+          state.hasSentGreeting = true;
+          markCurrentHistoryGreeted();
+          renderMessages();
+        });
+
+        document.getElementById("btn-sim-peer").addEventListener("click", function () {
+          state.peerReplied = true;
+          state.messages.push({ from: "peer", text: "嗨，我也喜欢户外～周末有空吗？" });
+          renderMessages();
+        });
+
+        document.getElementById("exit-primary").addEventListener("click", function () {
+          closeExitModal();
+          state.showChatBar = true;
+          if (el.chatInput) el.chatInput.focus();
+        });
+
+        document.getElementById("exit-secondary").addEventListener("click", function () {
+          closeExitModal();
+          removeLatestMatchIfNoGreet();
+          hideChatUi();
+          closeMatchedPanelSlide();
+          setTimeout(function () {
+            setScreen("entry");
+          }, 360);
+        });
+
+        document.getElementById("exit-close-x").addEventListener("click", function () {
+          state.exitModalDismissed = true;
+          closeExitModal();
+        });
+
+        document.getElementById("exit-scrim").addEventListener("click", function (e) {
+          if (e.target.id === "exit-scrim") closeExitModal();
+        });
+
+        document.getElementById("btn-matched-mic").addEventListener("click", function () {
+          shellPlaceholderToast("语音输入");
+        });
+        document.getElementById("btn-matched-emoji").addEventListener("click", function () {
+          shellPlaceholderToast("表情面板");
+        });
+        document.getElementById("btn-matched-plus").addEventListener("click", function () {
+          shellPlaceholderToast("更多功能");
+        });
+
+        function shellPlaceholderToast(label) {
+          showToast(label + "（原型占位）");
+        }
+
+        document.getElementById("tab-shell-rec").addEventListener("click", function () {
+          shellPlaceholderToast("推荐 Tab");
+        });
+        document.getElementById("tab-shell-partner").addEventListener("click", function () {
+          /* 当前已在找搭子 */
+        });
+        document.getElementById("nav-shell-rec").addEventListener("click", function () {
+          shellPlaceholderToast("推荐");
+        });
+        ["nav-shell-heart", "nav-shell-msg", "nav-shell-me"].forEach(function (id) {
+          document.getElementById(id).addEventListener("click", function () {
+            shellPlaceholderToast(document.getElementById(id).querySelector("span:last-child").textContent);
+          });
+        });
+
+        renderChips(el.chipsVibe, VIBE_OPTS, "vibe", state.prefs.vibe);
+        renderChips(el.chipsGender, GENDER_OPTS, "gender", state.prefs.gender);
+        syncCountUI();
+      })();
+    </script>
+  </body>
+</html>
